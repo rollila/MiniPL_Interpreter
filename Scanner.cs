@@ -19,13 +19,14 @@ namespace MiniPL
             while (true)
             {
                 Character current = reader.next();
-                Console.WriteLine(current.character);
                 if (current == null)
                 {
                     return null;
                 }
                 Character next;
+                StringBuilder buffer;
                 if (Char.IsWhiteSpace(current.character)) continue;
+                // Console.Write(current.character);
                 switch (current.character)
                 {
                     case '+':
@@ -52,16 +53,50 @@ namespace MiniPL
                         return new Token(TokenType.PAREN_RIGHT);
                     case ':':
                         next = reader.next();
-                        if (next.character == '=') return new Token(TokenType.ASSIGNMENT);
+                        if (next.character == '=')
+                        {
+                            // Console.Write(next.character);
+                            return new Token(TokenType.ASSIGNMENT);
+                        }
                         reader.previous();
                         return new Token(TokenType.DECLARATION_DELIMITER);
                     case '.':
                         next = reader.next();
-                        if (next.character == '.') return new Token(TokenType.STATEMENT_FOR_RANGE);
+                        if (next.character == '.')
+                        {
+                            // Console.Write(next.character);
+                            return new Token(TokenType.STATEMENT_FOR_RANGE);
+                        }
                         reader.previous();
                         return new Token(TokenType.INVALID_TOKEN);
+                    case '"':
+                        buffer = new StringBuilder();
+                        buffer.Append(current.character);
+                        while (true)
+                        {
+                            next = reader.next();
+                            if (next.line != current.line)
+                            {
+                                reader.previous();
+                                return new Token(TokenType.INVALID_TOKEN);
+                            }
+                            if (next.character == '"')
+                            {
+                                // Console.Write(next.character);
+                                buffer.Append(next.character);
+                                break;
+                            }
+                            if (next.character == '\\' && (reader.peek().character == '\\' || reader.peek().character == '"'))
+                            {
+                                next = reader.next();
+                            }
+                            // Console.Write(next.character);
+                            buffer.Append(next.character);
+                        }
+                        return new Token(TokenType.VALUE_STRING, buffer.ToString());
+
                     default:
-                        StringBuilder buffer = new StringBuilder();
+                        buffer = new StringBuilder();
                         buffer.Append(current.character);
                         while (true)
                         {
@@ -72,6 +107,7 @@ namespace MiniPL
                                 break;
                             }
                             if (Char.IsWhiteSpace(next.character)) break;
+                            // Console.Write(next.character);
                             buffer.Append(next.character);
                         }
                         string result = buffer.ToString();
@@ -100,14 +136,18 @@ namespace MiniPL
                             case "bool":
                                 return new Token(TokenType.DECLARATION_BOOL);
                             case "true":
-                                return new Token(TokenType.VALUE_BOOL);
+                                return new Token(TokenType.VALUE_BOOL, "true");
                             case "false":
-                                return new Token(TokenType.VALUE_BOOL);
+                                return new Token(TokenType.VALUE_BOOL, "false");
                             default:
                                 int resultAsNumber;
                                 if (int.TryParse(result, out resultAsNumber))
                                 {
                                     return new Token(TokenType.VALUE_INT, result);
+                                }
+                                if (!Char.IsLetter(result[0]))
+                                {
+                                    return new Token(TokenType.INVALID_TOKEN);
                                 }
                                 return new Token(TokenType.IDENTIFIER, result);
                         }

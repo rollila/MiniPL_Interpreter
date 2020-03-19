@@ -52,12 +52,12 @@ namespace MiniPL
 
         private bool hasNextLine()
         {
-            return text.Length > line;
+            return text.Length > line + 1;
         }
 
         private bool hasNextChar()
         {
-            return text[line].Length > column;
+            return text[line].Length > column + 1;
         }
 
         private bool hasPreviousLine()
