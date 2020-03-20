@@ -32,7 +32,8 @@ namespace MiniPL
         PAREN_RIGHT,
         TERMINATOR,
         IDENTIFIER,
-        INVALID_TOKEN
+        INVALID_TOKEN,
+        END_OF_INPUT
 
     }
     class Token

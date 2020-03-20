@@ -21,7 +21,7 @@ namespace MiniPL
                 Character current = reader.next();
                 if (current == null)
                 {
-                    return null;
+                    return new Token(TokenType.END_OF_INPUT);
                 }
                 Character next;
                 StringBuilder buffer;

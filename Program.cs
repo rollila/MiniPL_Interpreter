@@ -11,8 +11,7 @@ namespace MiniPL
             while (true)
             {
                 Token t = scanner.getNextToken();
-                if (t == null) break;
-                Console.WriteLine("");
+                if (t.type == TokenType.END_OF_INPUT) break;
                 Console.WriteLine(t);
             }
         }

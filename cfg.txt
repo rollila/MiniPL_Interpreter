@@ -1,0 +1,26 @@
+<prog> 		-> <statements>
+<statements>	-> <statement> ";" <statements_tail>
+<stmts_tail>	-> <statements> | nil
+<statement> 	-> "var" <var_ident> ":" <type> <optional_assignment>
+		|  <var_ident> ":=" <expr>
+		|  "for" <var_ident> "in" <expr> ".." <expr> "do" <statements> "end" "for"
+		|  "read" <var_ident>
+		|  "print" <expr>
+		|  "assert" "(" <expr> ")"
+<optional_ass>	-> ":=" <expr>
+<expr>		-> <operand> <expr_tail>
+		|  <unary_op> <operand>
+<expr_tail>	-> <op> <operand>
+		|  nil
+<operand>	-> <int>
+		|  <string>
+		|  <var_ident>
+		|  "("<expr> ")"
+<type>		-> "int"
+		|  "string"
+		|  "bool"
+<var_ident>	-> <id>
+<reserved_kw>   -> "var" | "for" | "end" | "in" | "do" | "read" | "print" | "int" | "string" | "bool" | "assert"
+<op>		-> "+" | "-" | "*" | "/" | "<" | "=" | "&"
+<unary_op>	-> "!"
+
