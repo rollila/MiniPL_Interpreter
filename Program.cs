@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System;
 
 namespace MiniPL
 {
@@ -8,11 +9,12 @@ namespace MiniPL
         {
             Reader fileReader = new FileReader("test3.minipl");
             Scanner scanner = new Scanner(fileReader);
-            while (true)
+            Parser parser = new Parser(scanner);
+            List<StatementNode> statements = parser.parse();
+            foreach (StatementNode statement in statements)
             {
-                Token t = scanner.getNextToken();
-                if (t.type == TokenType.END_OF_INPUT) break;
-                Console.WriteLine(t);
+                Console.WriteLine(statement);
+
             }
         }
     }

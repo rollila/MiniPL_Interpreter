@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MiniPL
 {
@@ -11,8 +12,9 @@ namespace MiniPL
             this.scanner = scanner;
         }
 
-        public void parse()
+        public List<StatementNode> parse()
         {
+            List<StatementNode> statements = new List<StatementNode>();
             currentToken = scanner.getNextToken();
             switch (currentToken.type)
             {
@@ -21,30 +23,33 @@ namespace MiniPL
                 case TokenType.STATEMENT_READ:
                 case TokenType.STATEMENT_PRINT:
                 case TokenType.STATEMENT_ASSERT:
-                    Statements();
+                    statements = Statements();
                     match(TokenType.END_OF_INPUT);
                     break;
                 default:
                     Console.WriteLine("Error");
                     break;
             }
+            return statements;
         }
 
-        public bool match(TokenType expected)
+        private bool match(TokenType expected)
         {
             bool result = expected == currentToken.type;
+            Console.WriteLine("Received: {0}, expected: {1}", currentToken.type, expected);
             if (!result) Console.WriteLine("Error at matching");
             consumeToken();
             return result;
         }
 
-        public void consumeToken()
+        private void consumeToken()
         {
             currentToken = scanner.getNextToken();
         }
 
-        public void Statements()
+        private List<StatementNode> Statements()
         {
+            List<StatementNode> statements = new List<StatementNode>();
             switch (currentToken.type)
             {
                 case TokenType.DECLARATION:
@@ -53,67 +58,70 @@ namespace MiniPL
                 case TokenType.STATEMENT_READ:
                 case TokenType.STATEMENT_PRINT:
                 case TokenType.STATEMENT_ASSERT:
-                    Statement();
+                    statements.Add(Statement());
                     match(TokenType.TERMINATOR);
+                    statements.AddRange(Statements());
                     Statements();
                     break;
                 case TokenType.END_OF_INPUT:
-                    break;
                 default:
-                    Console.WriteLine("Erroneus token at Statements");
                     break;
             }
+            return statements;
         }
 
-        public void Statement()
+        private StatementNode Statement()
         {
             switch (currentToken.type)
             {
                 case TokenType.DECLARATION:
                     match(TokenType.DECLARATION);
-                    Identifier();
+                    VariableNode declarationVariable = Identifier();
                     match(TokenType.DECLARATION_DELIMITER);
-                    Type();
-                    OptionalAssignment();
-                    break;
+                    Token declarationType = Type();
+                    ExpressionNode declarationValue = OptionalAssignment();
+                    return new StatementDeclarationNode(declarationVariable, declarationType, declarationValue);
                 case TokenType.IDENTIFIER:
-                    Identifier();
+                    VariableNode assignmentVariable = Identifier();
                     match(TokenType.ASSIGNMENT);
-                    Expression();
-                    break;
+                    ExpressionNode assignmentValue = Expression();
+                    return new StatementAssignmentNode(assignmentVariable, assignmentValue);
                 case TokenType.STATEMENT_FOR:
                     match(TokenType.STATEMENT_FOR);
-                    Identifier();
+                    VariableNode i = Identifier();
                     match(TokenType.STATEMENT_FOR_IN);
-                    Expression();
+                    ExpressionNode begin = Expression();
                     match(TokenType.STATEMENT_FOR_RANGE);
-                    Expression();
+                    ExpressionNode end = Expression();
                     match(TokenType.STATEMENT_FOR_DO);
-                    Statements();
+                    List<StatementNode> forStatements = Statements();
                     match(TokenType.STATEMENT_FOR_END);
                     match(TokenType.STATEMENT_FOR);
-                    break;
+                    return new StatementForNode(i, begin, end, forStatements);
                 case TokenType.STATEMENT_READ:
                     match(TokenType.STATEMENT_READ);
-                    Identifier();
-                    break;
+                    VariableNode readTarget = Identifier();
+                    return new StatementReadNode(readTarget);
                 case TokenType.STATEMENT_PRINT:
                     match(TokenType.STATEMENT_PRINT);
-                    Expression();
-                    break;
-                case TokenType.STATEMENT_ASSERT:
+                    ExpressionNode printExpression = Expression();
+                    return new StatementPrintNode(printExpression);
+                case
+                 TokenType.STATEMENT_ASSERT:
+                    match(TokenType.STATEMENT_ASSERT);
                     match(TokenType.PAREN_LEFT);
-                    Expression();
+                    ExpressionNode assertExpression = Expression();
                     match(TokenType.PAREN_RIGHT);
-                    break;
+                    return new StatementAssertNode(assertExpression);
                 default:
                     Console.WriteLine("Error at Statement");
-                    break;
+                    return null;
             }
         }
 
-        public void Expression()
+        private ExpressionNode Expression()
         {
+            ExpressionNode e = new ExpressionNode();
             switch (currentToken.type)
             {
                 case TokenType.VALUE_BOOL:
@@ -121,7 +129,7 @@ namespace MiniPL
                 case TokenType.VALUE_STRING:
                 case TokenType.IDENTIFIER:
                 case TokenType.PAREN_LEFT:
-                    Operand();
+                    e.left = Operand();
                     switch (currentToken.type)
                     {
                         case TokenType.OP_AND:
@@ -131,125 +139,134 @@ namespace MiniPL
                         case TokenType.OP_MINUS:
                         case TokenType.OP_PLUS:
                         case TokenType.OP_MULTI:
-                            Operator();
-                            Operand();
+                            e.op = Operator();
+                            e.right = Operand();
                             break;
                         default:
                             break;
                     }
                     break;
                 case TokenType.OP_NOT:
-                    UnaryOperator();
-                    Operand();
+                    e.op = UnaryOperator();
+                    e.right = Operand();
                     break;
                 default:
                     Console.WriteLine("Invalid token at Expression");
                     break;
             }
+            return e;
         }
 
-        public void UnaryOperator()
+        private Token UnaryOperator()
         {
             match(TokenType.OP_NOT);
+            return currentToken;
         }
 
-        public void Operator()
+        private Token Operator()
         {
             switch (currentToken.type)
             {
                 case TokenType.OP_AND:
                     match(TokenType.OP_AND);
-                    break;
+                    return currentToken;
                 case TokenType.OP_DIV:
                     match(TokenType.OP_DIV);
-                    break;
+                    return currentToken;
                 case TokenType.OP_EQUALS:
                     match(TokenType.OP_EQUALS);
-                    break;
+                    return currentToken;
                 case TokenType.OP_LESSTHAN:
                     match(TokenType.OP_LESSTHAN);
-                    break;
+                    return currentToken;
                 case TokenType.OP_MINUS:
                     match(TokenType.OP_MINUS);
-                    break;
+                    return currentToken;
                 case TokenType.OP_PLUS:
                     match(TokenType.OP_PLUS);
-                    break;
+                    return currentToken;
                 case TokenType.OP_MULTI:
                     match(TokenType.OP_MULTI);
-                    break;
+                    return currentToken;
                 default:
                     Console.WriteLine("Invalid token at Operator");
-                    break;
+                    return null;
             }
 
         }
 
-        public void Operand()
+        private OperandNode Operand()
         {
             switch (currentToken.type)
             {
                 case TokenType.VALUE_INT:
+                    Token intToken = currentToken;
                     match(TokenType.VALUE_INT);
-                    break;
+                    return new IntNode(Int32.Parse(intToken.value));
                 case TokenType.VALUE_STRING:
+                    Token stringToken = currentToken;
                     match(TokenType.VALUE_STRING);
-                    break;
+                    return new StringNode(stringToken.value);
                 case TokenType.VALUE_BOOL:
+                    Token boolToken = currentToken;
                     match(TokenType.VALUE_BOOL);
-                    break;
+                    return new BooleanNode(Boolean.Parse(boolToken.value));
                 case TokenType.IDENTIFIER:
+                    Token idToken = currentToken;
                     match(TokenType.IDENTIFIER);
-                    break;
+                    return new VariableNode(idToken.value);
                 case TokenType.PAREN_LEFT:
                     match(TokenType.PAREN_LEFT);
-                    Expression();
+                    ExpressionNode e = Expression();
                     match(TokenType.PAREN_RIGHT);
-                    break;
+                    return e;
                 default:
                     Console.Write("Invalid token at Operand");
-                    break;
+                    return null;
             }
 
         }
 
-        public void OptionalAssignment()
+        private ExpressionNode OptionalAssignment()
         {
             if (currentToken.type == TokenType.ASSIGNMENT)
             {
                 match(TokenType.ASSIGNMENT);
-                Expression();
+                return Expression();
             }
+            return null;
         }
 
-        public void Type()
+        private Token Type()
         {
             switch (currentToken.type)
             {
                 case TokenType.DECLARATION_BOOL:
                     match(TokenType.DECLARATION_BOOL);
-                    break;
+                    return currentToken;
                 case TokenType.DECLARATION_INT:
                     match(TokenType.DECLARATION_INT);
-                    break;
+                    return currentToken;
                 case TokenType.DECLARATION_STRING:
                     match(TokenType.DECLARATION_STRING);
-                    break;
+                    return currentToken;
                 default:
                     Console.WriteLine("Invalid token at Type");
-                    break;
+                    return null;
             }
         }
 
-        public void Identifier()
+        private VariableNode Identifier()
         {
             if (currentToken.type == TokenType.IDENTIFIER)
             {
                 match(TokenType.IDENTIFIER);
+                return new VariableNode(currentToken.value);
             }
             else
             {
                 Console.WriteLine("Invalid token at Identifier");
+                return null;
             }
 
         }
