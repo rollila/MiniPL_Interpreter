@@ -68,18 +68,20 @@ namespace MiniPL
             Symbol i = VisitVariableNode(node.i);
             object begin = VisitExpressionNode(node.begin);
             object end = VisitExpressionNode(node.end);
+
             if (!(i.type == TokenType.DECLARATION_INT))
             {
                 Console.WriteLine("Invalid type for variable {0}, expected int", node.i.identifier);
             }
-            if (!(begin is int))
+            if (!(begin is int) && !(begin is VariableNode))
             {
                 Console.WriteLine("Invalid expression at beginning of for range");
             }
-            if (!(end is int))
+            if (!(end is int) && !(end is VariableNode))
             {
                 Console.WriteLine("Invalid expression at end of for range");
             }
+            i.value = begin is VariableNode ? symbolTable.get((begin as VariableNode).identifier) : begin;
             foreach (StatementNode statement in node.statements)
             {
                 VisitStatementNode(statement);
@@ -88,21 +90,24 @@ namespace MiniPL
 
         }
 
-        public string VisitStatementPrintNode(StatementPrintNode node)
+        public object VisitStatementPrintNode(StatementPrintNode node)
         {
             object value = VisitExpressionNode(node.expression);
-            if (value is string)
+            if (value is VariableNode)
             {
-                return value as string;
+                Symbol variableSymbol = VisitVariableNode(value as VariableNode);
+                if (variableSymbol != null)
+                {
+                    return variableSymbol.value;
+                }
             }
-            Console.WriteLine("Invalid operand type for print, expected string");
-            return null;
+            return value;
         }
 
         public string VisitStatementReadNode(StatementReadNode node)
         {
             Symbol value = VisitVariableNode(node.target);
-            if (value.type != TokenType.DECLARATION_STRING)
+            if (value.type != TokenType.DECLARATION_STRING && value.type != TokenType.DECLARATION_INT)
             {
                 Console.WriteLine("Invalid variable type for read statement");
                 return null;
@@ -117,7 +122,13 @@ namespace MiniPL
 
         public Symbol VisitVariableNode(VariableNode variableNode)
         {
-            return symbolTable.get(variableNode.identifier);
+            Symbol var = symbolTable.get(variableNode.identifier);
+            if (var == null)
+            {
+                Console.WriteLine("Undeclared variable");
+                return null;
+            }
+            return var;
         }
 
         public object VisitExpressionNode(ExpressionNode node)
@@ -149,6 +160,7 @@ namespace MiniPL
                     return null;
                 }
             }
+
             if (valueLeft is int)
             {
                 if (valueRight is null)

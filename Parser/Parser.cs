@@ -165,29 +165,30 @@ namespace MiniPL
 
         private Token Operator()
         {
+            Token t = currentToken;
             switch (currentToken.type)
             {
                 case TokenType.OP_AND:
                     match(TokenType.OP_AND);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_DIV:
                     match(TokenType.OP_DIV);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_EQUALS:
                     match(TokenType.OP_EQUALS);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_LESSTHAN:
                     match(TokenType.OP_LESSTHAN);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_MINUS:
                     match(TokenType.OP_MINUS);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_PLUS:
                     match(TokenType.OP_PLUS);
-                    return currentToken;
+                    return t;
                 case TokenType.OP_MULTI:
                     match(TokenType.OP_MULTI);
-                    return currentToken;
+                    return t;
                 default:
                     Console.WriteLine("Invalid token at Operator");
                     return null;

@@ -11,7 +11,7 @@ namespace MiniPL
 
         public object getValue()
         {
-            return this.identifier;
+            return this;
         }
 
     }
