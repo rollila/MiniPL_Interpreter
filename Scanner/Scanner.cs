@@ -149,6 +149,7 @@ namespace MiniPL
                                 {
                                     return new Token(TokenType.INVALID_TOKEN);
                                 }
+                                Console.WriteLine(result);
                                 return new Token(TokenType.IDENTIFIER, result);
                         }
                 }

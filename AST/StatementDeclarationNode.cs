@@ -2,9 +2,9 @@ namespace MiniPL
 {
     class StatementDeclarationNode : StatementNode
     {
-        private VariableNode variable;
-        private Token type;
-        private ExpressionNode value;
+        public VariableNode variable;
+        public Token type;
+        public ExpressionNode value;
 
         public StatementDeclarationNode(VariableNode variable, Token type, ExpressionNode value)
         {

@@ -4,10 +4,10 @@ namespace MiniPL
 {
     class StatementForNode : StatementNode
     {
-        private VariableNode i;
-        private ExpressionNode begin;
-        private ExpressionNode end;
-        private List<StatementNode> statements;
+        public VariableNode i;
+        public ExpressionNode begin;
+        public ExpressionNode end;
+        public List<StatementNode> statements;
 
         public StatementForNode(VariableNode i, ExpressionNode begin, ExpressionNode end, List<StatementNode> statements)
         {

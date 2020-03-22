@@ -148,7 +148,7 @@ namespace MiniPL
                     break;
                 case TokenType.OP_NOT:
                     e.op = UnaryOperator();
-                    e.right = Operand();
+                    e.left = Operand();
                     break;
                 default:
                     Console.WriteLine("Invalid token at Expression");
@@ -242,14 +242,17 @@ namespace MiniPL
             switch (currentToken.type)
             {
                 case TokenType.DECLARATION_BOOL:
+                    Token boolToken = currentToken;
                     match(TokenType.DECLARATION_BOOL);
-                    return currentToken;
+                    return boolToken;
                 case TokenType.DECLARATION_INT:
+                    Token intToken = currentToken;
                     match(TokenType.DECLARATION_INT);
-                    return currentToken;
+                    return intToken;
                 case TokenType.DECLARATION_STRING:
+                    Token stringToken = currentToken;
                     match(TokenType.DECLARATION_STRING);
-                    return currentToken;
+                    return stringToken;
                 default:
                     Console.WriteLine("Invalid token at Type");
                     return null;
@@ -260,8 +263,9 @@ namespace MiniPL
         {
             if (currentToken.type == TokenType.IDENTIFIER)
             {
+                Token identifierToken = currentToken;
                 match(TokenType.IDENTIFIER);
-                return new VariableNode(currentToken.value);
+                return new VariableNode(identifierToken.value);
             }
             else
             {

@@ -11,11 +11,8 @@ namespace MiniPL
             Scanner scanner = new Scanner(fileReader);
             Parser parser = new Parser(scanner);
             List<StatementNode> statements = parser.parse();
-            foreach (StatementNode statement in statements)
-            {
-                Console.WriteLine(statement);
-
-            }
+            SemanticAnalyzer analyzer = new SemanticAnalyzer(statements);
+            analyzer.Analyze();
         }
     }
 }

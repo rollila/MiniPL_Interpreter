@@ -2,7 +2,7 @@ namespace MiniPL
 {
     class StatementAssertNode : StatementNode
     {
-        private ExpressionNode expression;
+        public ExpressionNode expression;
 
         public StatementAssertNode(ExpressionNode expression)
         {

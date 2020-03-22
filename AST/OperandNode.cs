@@ -2,7 +2,8 @@ using System;
 
 namespace MiniPL
 {
-    class OperandNode
+    interface OperandNode
     {
+        object getValue();
     }
 }

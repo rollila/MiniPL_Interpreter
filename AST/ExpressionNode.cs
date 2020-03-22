@@ -11,5 +11,10 @@ namespace MiniPL
 
         }
 
+        public object getValue()
+        {
+            return null;
+        }
+
     }
 }

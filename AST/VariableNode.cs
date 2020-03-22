@@ -9,5 +9,10 @@ namespace MiniPL
             this.identifier = identifier;
         }
 
+        public object getValue()
+        {
+            return this.identifier;
+        }
+
     }
 }

@@ -2,8 +2,8 @@ namespace MiniPL
 {
     class StatementAssignmentNode : StatementNode
     {
-        private VariableNode variable;
-        private ExpressionNode value;
+        public VariableNode variable;
+        public ExpressionNode value;
 
         public StatementAssignmentNode(VariableNode variable, ExpressionNode value)
         {

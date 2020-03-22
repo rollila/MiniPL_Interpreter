@@ -2,7 +2,7 @@ namespace MiniPL
 {
     class StatementReadNode : StatementNode
     {
-        private VariableNode target;
+        public VariableNode target;
 
         public StatementReadNode(VariableNode target)
         {

@@ -2,7 +2,7 @@ namespace MiniPL
 {
     class StatementPrintNode : StatementNode
     {
-        private ExpressionNode expression;
+        public ExpressionNode expression;
 
         public StatementPrintNode(ExpressionNode expression)
         {
