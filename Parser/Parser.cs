@@ -7,9 +7,11 @@ namespace MiniPL
     {
         private Scanner scanner;
         private Token currentToken;
+        public List<Error> errors;
         public Parser(Scanner scanner)
         {
             this.scanner = scanner;
+            this.errors = new List<Error>();
         }
 
         public List<StatementNode> parse()
@@ -36,8 +38,10 @@ namespace MiniPL
         private bool match(TokenType expected)
         {
             bool result = expected == currentToken.type;
-            Console.WriteLine("Received: {0}, expected: {1}", currentToken.type, expected);
-            if (!result) Console.WriteLine("Error at matching");
+            if (!result)
+            {
+                errors.Add(new UnexpectedTokenError(currentToken));
+            }
             consumeToken();
             return result;
         }
@@ -45,6 +49,16 @@ namespace MiniPL
         private void consumeToken()
         {
             currentToken = scanner.getNextToken();
+            if (currentToken.type == TokenType.INVALID_TOKEN)
+            {
+                errors.Add(new InvalidTokenError(currentToken));
+                consumeToken();
+            }
+            if (currentToken.type == TokenType.INVALID_MULTILINE_STRING)
+            {
+                errors.Add(new InvalidMultilineStringError(currentToken));
+                consumeToken();
+            }
         }
 
         private List<StatementNode> Statements()
@@ -61,7 +75,6 @@ namespace MiniPL
                     statements.Add(Statement());
                     match(TokenType.TERMINATOR);
                     statements.AddRange(Statements());
-                    Statements();
                     break;
                 case TokenType.END_OF_INPUT:
                 default:
@@ -72,6 +85,7 @@ namespace MiniPL
 
         private StatementNode Statement()
         {
+            Token token;
             switch (currentToken.type)
             {
                 case TokenType.DECLARATION:
@@ -82,11 +96,13 @@ namespace MiniPL
                     ExpressionNode declarationValue = OptionalAssignment();
                     return new StatementDeclarationNode(declarationVariable, declarationType, declarationValue);
                 case TokenType.IDENTIFIER:
+                    token = currentToken;
                     VariableNode assignmentVariable = Identifier();
                     match(TokenType.ASSIGNMENT);
                     ExpressionNode assignmentValue = Expression();
-                    return new StatementAssignmentNode(assignmentVariable, assignmentValue);
+                    return new StatementAssignmentNode(assignmentVariable, assignmentValue, token);
                 case TokenType.STATEMENT_FOR:
+                    token = currentToken;
                     match(TokenType.STATEMENT_FOR);
                     VariableNode i = Identifier();
                     match(TokenType.STATEMENT_FOR_IN);
@@ -97,24 +113,26 @@ namespace MiniPL
                     List<StatementNode> forStatements = Statements();
                     match(TokenType.STATEMENT_FOR_END);
                     match(TokenType.STATEMENT_FOR);
-                    return new StatementForNode(i, begin, end, forStatements);
+                    return new StatementForNode(i, begin, end, forStatements, token);
                 case TokenType.STATEMENT_READ:
+                    token = currentToken;
                     match(TokenType.STATEMENT_READ);
                     VariableNode readTarget = Identifier();
-                    return new StatementReadNode(readTarget);
+                    return new StatementReadNode(readTarget, token);
                 case TokenType.STATEMENT_PRINT:
                     match(TokenType.STATEMENT_PRINT);
                     ExpressionNode printExpression = Expression();
                     return new StatementPrintNode(printExpression);
                 case
                  TokenType.STATEMENT_ASSERT:
+                    token = currentToken;
                     match(TokenType.STATEMENT_ASSERT);
                     match(TokenType.PAREN_LEFT);
                     ExpressionNode assertExpression = Expression();
                     match(TokenType.PAREN_RIGHT);
-                    return new StatementAssertNode(assertExpression);
+                    return new StatementAssertNode(assertExpression, token);
                 default:
-                    Console.WriteLine("Error at Statement");
+                    errors.Add(new UnexpectedTokenError(currentToken));
                     return null;
             }
         }
@@ -151,7 +169,7 @@ namespace MiniPL
                     e.left = Operand();
                     break;
                 default:
-                    Console.WriteLine("Invalid token at Expression");
+                    errors.Add(new UnexpectedTokenError(currentToken));
                     break;
             }
             return e;
@@ -190,7 +208,7 @@ namespace MiniPL
                     match(TokenType.OP_MULTI);
                     return t;
                 default:
-                    Console.WriteLine("Invalid token at Operator");
+                    errors.Add(new UnexpectedTokenError(currentToken));
                     return null;
             }
 
@@ -222,7 +240,7 @@ namespace MiniPL
                     match(TokenType.PAREN_RIGHT);
                     return e;
                 default:
-                    Console.Write("Invalid token at Operand");
+                    errors.Add(new UnexpectedTokenError(currentToken));
                     return null;
             }
 
@@ -255,7 +273,7 @@ namespace MiniPL
                     match(TokenType.DECLARATION_STRING);
                     return stringToken;
                 default:
-                    Console.WriteLine("Invalid token at Type");
+                    errors.Add(new UnexpectedTokenError(currentToken));
                     return null;
             }
         }
@@ -270,7 +288,7 @@ namespace MiniPL
             }
             else
             {
-                Console.WriteLine("Invalid token at Identifier");
+                errors.Add(new UnexpectedTokenError(currentToken));
                 return null;
             }
 

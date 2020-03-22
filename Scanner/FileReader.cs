@@ -41,7 +41,7 @@ namespace MiniPL
             if (!hasPreviousChar() && hasPreviousLine())
             {
                 line -= 1;
-                column = text[line].Length - 1;
+                column = text[line].Trim().Length - 1;
             }
             else
             {

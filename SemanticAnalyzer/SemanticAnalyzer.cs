@@ -7,11 +7,13 @@ namespace MiniPL
     {
         private List<StatementNode> AST;
         private SymbolTable symbolTable;
+        public List<Error> errors;
 
         public SemanticAnalyzer(List<StatementNode> AST)
         {
             this.AST = AST;
             this.symbolTable = new SymbolTable();
+            this.errors = new List<Error>();
         }
 
         public void Analyze()
@@ -25,16 +27,30 @@ namespace MiniPL
         public void VisitStatementNode(StatementNode node)
         {
             Type statementType = node.GetType();
-            Console.WriteLine(statementType);
             this.GetType().GetMethod("Visit" + statementType.Name).Invoke(this, new[] { node });
         }
 
         public void VisitStatementAssertNode(StatementAssertNode node)
         {
             object value = VisitExpressionNode(node.expression);
+            if (value is VariableNode)
+            {
+                Symbol variable = symbolTable.get((value as VariableNode).identifier);
+                if (variable == null)
+                {
+                    errors.Add(new UndeclaredVariableError(node.token));
+                    return;
+                }
+                if (variable.type != TokenType.DECLARATION_BOOL)
+                {
+                    errors.Add(new InvalidTypeError(node.token));
+                    return;
+                }
+                return;
+            }
             if (!(value is bool))
             {
-                Console.WriteLine("Invalid expression type for assert statement");
+                errors.Add(new InvalidTypeError(node.token));
             }
         }
 
@@ -43,10 +59,42 @@ namespace MiniPL
             Symbol existing = symbolTable.get(node.variable.identifier);
             if (existing == null)
             {
-                Console.WriteLine("Attempted to assign value before declaration");
+                errors.Add(new UndeclaredVariableError(node.token));
                 return;
             }
             object value = VisitExpressionNode(node.value);
+            if (value is int && existing.type != TokenType.DECLARATION_INT)
+            {
+
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is bool && existing.type != TokenType.DECLARATION_BOOL)
+            {
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is string && existing.type != TokenType.DECLARATION_STRING)
+            {
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is VariableNode)
+            {
+                string targetIdentifier = (value as VariableNode).identifier;
+                Symbol target = symbolTable.get(targetIdentifier);
+                if (target == null)
+                {
+                    errors.Add(new UndeclaredVariableError(node.token));
+                    return;
+                }
+                if (target.type != node.token.type)
+                {
+                    errors.Add(new InvalidTypeError(node.token));
+                    return;
+                }
+                value = target.value;
+            }
             existing.value = value;
         }
 
@@ -55,12 +103,43 @@ namespace MiniPL
             Symbol existing = symbolTable.get(node.variable.identifier);
             if (existing != null)
             {
-                Console.WriteLine("Variable {0} is already declared", node.variable.identifier);
+                errors.Add(new DuplicateDeclarationError(node.token, node.variable.identifier));
                 return;
             }
             object value = VisitExpressionNode(node.value);
+            if (value is int && node.token.type != TokenType.DECLARATION_INT)
+            {
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is bool && node.token.type != TokenType.DECLARATION_BOOL)
+            {
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is string && node.token.type != TokenType.DECLARATION_STRING)
+            {
+                errors.Add(new InvalidTypeError(node.token));
+                return;
+            }
+            if (value is VariableNode)
+            {
+                string targetIdentifier = (value as VariableNode).identifier;
+                Symbol target = symbolTable.get(targetIdentifier);
+                if (target == null)
+                {
+                    errors.Add(new UndeclaredVariableError(node.token));
+                    return;
+                }
+                if (target.type != node.token.type)
+                {
+                    errors.Add(new InvalidTypeError(node.token));
+                    return;
+                }
+                value = target.value;
+            }
 
-            symbolTable.add(node.variable.identifier, new Symbol(node.type.type, value));
+            symbolTable.add(node.variable.identifier, new Symbol(node.token.type, value));
         }
 
         public void VisitStatementForNode(StatementForNode node)
@@ -69,17 +148,37 @@ namespace MiniPL
             object begin = VisitExpressionNode(node.begin);
             object end = VisitExpressionNode(node.end);
 
-            if (!(i.type == TokenType.DECLARATION_INT))
+            List<Error> localErrors = new List<Error>();
+
+            if (i == null)
             {
-                Console.WriteLine("Invalid type for variable {0}, expected int", node.i.identifier);
+                localErrors.Add(new UndeclaredVariableError(node.token));
             }
-            if (!(begin is int) && !(begin is VariableNode))
+            if (begin == null)
             {
-                Console.WriteLine("Invalid expression at beginning of for range");
+                localErrors.Add(new UndeclaredVariableError(node.token));
             }
-            if (!(end is int) && !(end is VariableNode))
+            if (end == null)
             {
-                Console.WriteLine("Invalid expression at end of for range");
+                localErrors.Add(new UndeclaredVariableError(node.token));
+            }
+
+            if (i != null && !(i.type == TokenType.DECLARATION_INT))
+            {
+                localErrors.Add(new InvalidTypeError(node.token));
+            }
+            if (begin != null && !(begin is int) && !(begin is VariableNode))
+            {
+                localErrors.Add(new InvalidTypeError(node.token));
+            }
+            if (begin != null && !(end is int) && !(end is VariableNode))
+            {
+                localErrors.Add(new InvalidTypeError(node.token));
+            }
+            if (localErrors.Count > 0)
+            {
+                errors.AddRange(localErrors);
+                return;
             }
             i.value = begin is VariableNode ? symbolTable.get((begin as VariableNode).identifier) : begin;
             foreach (StatementNode statement in node.statements)
@@ -104,20 +203,15 @@ namespace MiniPL
             return value;
         }
 
-        public string VisitStatementReadNode(StatementReadNode node)
+        public void VisitStatementReadNode(StatementReadNode node)
         {
             Symbol value = VisitVariableNode(node.target);
             if (value.type != TokenType.DECLARATION_STRING && value.type != TokenType.DECLARATION_INT)
             {
-                Console.WriteLine("Invalid variable type for read statement");
-                return null;
+                errors.Add(new InvalidTypeError(node.token));
+                return;
             }
-            return value.value as string;
-        }
-
-        public string VisitStringNode(StringNode stringNode)
-        {
-            return stringNode.value;
+            return;
         }
 
         public Symbol VisitVariableNode(VariableNode variableNode)
@@ -125,7 +219,6 @@ namespace MiniPL
             Symbol var = symbolTable.get(variableNode.identifier);
             if (var == null)
             {
-                Console.WriteLine("Undeclared variable");
                 return null;
             }
             return var;
@@ -156,7 +249,7 @@ namespace MiniPL
                 }
                 else
                 {
-                    Console.WriteLine("Invalid operand type for OP_NOT");
+                    errors.Add(new InvalidTypeError(node.op));
                     return null;
                 }
             }
@@ -165,12 +258,12 @@ namespace MiniPL
             {
                 if (valueRight is null)
                 {
-                    Console.WriteLine("Missing right operand for numeric operation");
+                    errors.Add(new InvalidNumberOfOperandsError(node.op));
                     return null;
                 }
                 if (!(valueRight is int))
                 {
-                    Console.WriteLine("Invalid right operand for numeric operation");
+                    errors.Add(new InvalidNumberOfOperandsError(node.op));
                     return null;
                 }
                 switch (node.op.type)
@@ -188,7 +281,7 @@ namespace MiniPL
                     case TokenType.OP_EQUALS:
                         return (int)valueLeft == (int)valueRight;
                     default:
-                        Console.WriteLine("Invalid operation for numeric operands");
+                        errors.Add(new InvalidTypeError(node.op));
                         return null;
                 }
             }
@@ -196,7 +289,7 @@ namespace MiniPL
             {
                 if (valueRight is null)
                 {
-                    Console.WriteLine("Missing right operand for string operation");
+                    errors.Add(new InvalidNumberOfOperandsError(node.op));
                     return null;
                 }
                 switch (node.op.type)
@@ -204,7 +297,7 @@ namespace MiniPL
                     case TokenType.OP_EQUALS:
                         return valueLeft.Equals(valueRight);
                     default:
-                        Console.WriteLine("Invalid operation for string operands");
+                        errors.Add(new InvalidTypeError(node.op));
                         return null;
                 }
             }

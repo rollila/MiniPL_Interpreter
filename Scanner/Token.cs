@@ -33,6 +33,7 @@ namespace MiniPL
         TERMINATOR,
         IDENTIFIER,
         INVALID_TOKEN,
+        INVALID_MULTILINE_STRING,
         END_OF_INPUT
 
     }
@@ -40,16 +41,22 @@ namespace MiniPL
     {
         public TokenType type;
         public string value;
+        public int line;
+        public int column;
 
-        public Token(TokenType type)
+        public Token(TokenType type, int line, int column)
         {
             this.type = type;
+            this.line = line;
+            this.column = column;
         }
 
-        public Token(TokenType type, string value)
+        public Token(TokenType type, string value, int line, int column)
         {
             this.type = type;
             this.value = value;
+            this.line = line;
+            this.column = column;
         }
 
         public override string ToString()
